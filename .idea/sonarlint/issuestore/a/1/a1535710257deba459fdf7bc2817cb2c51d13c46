@@ -1,0 +1,46 @@
+
+^
+java:S1128"<Remove this unused import 'ca.uhn.fhir.context.FhirContext'.(¦ö„úÿÿÿÿ8ØÎ˜ìó1
+]
+java:S1128";Remove this unused import 'ca.uhn.fhir.fhirpath.IFhirPath'.(·€ µøÿÿÿÿ8ØÎ˜ìó1
+a
+java:S1128"?Remove this unused import 'ca.uhn.fhir.rest.annotation.Create'.(£ÄÂ¤úÿÿÿÿ8ØÎ˜ìó1
+\
+java:S1128"@Remove this unused import 'ca.uhn.fhir.rest.annotation.IdParam'.(“Ë¾28ØÎ˜ìó1
+b
+java:S1128"FRemove this unused import 'ca.uhn.fhir.rest.annotation.OptionalParam'.(Ğ¥Ş8ØÎ˜ìó1
+_
+java:S1128"=Remove this unused import 'ca.uhn.fhir.rest.annotation.Read'.(ÄÄ¶ùÿÿÿÿ8ØÎ˜ìó1
+h
+java:S1128	"FRemove this unused import 'ca.uhn.fhir.rest.annotation.ResourceParam'.(Ò¥ßşÿÿÿÿ8ØÎ˜ìó1
+\
+java:S1128
+"?Remove this unused import 'ca.uhn.fhir.rest.annotation.Search'.(ÙÁÇ8ØÎ˜ìó1
+a
+java:S1128"?Remove this unused import 'ca.uhn.fhir.rest.annotation.Update'.(‚™…Éşÿÿÿÿ8ØÎ˜ìó1
+\
+java:S1128"?Remove this unused import 'ca.uhn.fhir.rest.api.MethodOutcome'.(ù‰Şá8ØÎ˜ìó1
+_
+java:S1128"=Remove this unused import 'ca.uhn.fhir.rest.param.DateParam'.(¶†ÿÿÿÿÿ8ØÎ˜ìó1
+\
+java:S1128"?Remove this unused import 'ca.uhn.fhir.rest.param.StringParam'.(£ğô£8ØÎ˜ìó1
+`
+java:S1128">Remove this unused import 'ca.uhn.fhir.rest.param.TokenParam'.(†º§öøÿÿÿÿ8ØÎ˜ìó1
+u
+java:S1128"YRemove this unused import 'ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException'.(ü¯8ØÎ˜ìó1
+M
+java:S1128"0Remove this unused import 'java.util.ArrayList'.(÷‰îƒ8ÙÎ˜ìó1
+P
+java:S1128".Remove this unused import 'java.util.HashMap'.(™˜”€ùÿÿÿÿ8ÙÎ˜ìó1
+M
+java:S1128"+Remove this unused import 'java.util.List'.(Õë±Äøÿÿÿÿ8ÙÎ˜ìó1
+M
+java:S1128"+Remove this unused import 'java.util.UUID'.(ÀãÄ£úÿÿÿÿ8ÙÎ˜ìó1
+\
+java:S1128":Remove this unused import 'net.sf.saxon.expr.Component.M'.(çÅ½ıÿÿÿÿ8ÙÎ˜ìó1
+V
+java:S1128"9Remove this unused import 'org.hl7.fhir.r4.model.IdType'.(£ºÑê8ÙÎ˜ìó1
+\
+java:S1128":Remove this unused import 'org.hl7.fhir.r4.model.Patient'.(ƒ§—Áøÿÿÿÿ8ÙÎ˜ìó1
+_
+java:S1128"=Remove this unused import 'org.hl7.fhir.r4.model.StringType'.(ş”ùúÿÿÿÿ8ÙÎ˜ìó1

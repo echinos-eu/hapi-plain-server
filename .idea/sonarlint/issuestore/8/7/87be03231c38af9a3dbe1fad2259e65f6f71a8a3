@@ -1,0 +1,15 @@
+
+£
+java:S1186"€Add a nested comment explaining why this method is empty, throw an UnsupportedOperationException or complete the implementation.(·òşÿÿÿÿ8‡¦™ìó1
+„
+java:S1128"<Remove this unused import 'ca.uhn.fhir.context.FhirContext'.(¦ö„úÿÿÿÿ8Ñ†•‹ï1J$e78bca4f-22ac-402b-b67d-5af5fa4a2978
+c
+java:S1128"FRemove this unused import 'ca.uhn.fhir.rest.server.IResourceProvider'.(Ô¾Â²8‹¦™ìó1
+|
+java:S1128"_Remove this unused import 'ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor'.(Ó»À8‹¦™ìó1
+_
+java:S1128"=Remove this unused import 'example.provider.PatientProvider'.(ø¾ğøşÿÿÿÿ8‹¦™ìó1
+M
+java:S1128"0Remove this unused import 'java.util.ArrayList'.(÷‰îƒ8‹¦™ìó1
+M
+java:S1128	"+Remove this unused import 'java.util.List'.(Õë±Äøÿÿÿÿ8‹¦™ìó1
