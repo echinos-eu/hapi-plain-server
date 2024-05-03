@@ -12,7 +12,14 @@ import jakarta.servlet.annotation.WebServlet;
 @WebServlet("/*")
 public class HapiServer extends RestfulServer {
 
+  public HapiServer() {
+    super(FhirContext.forR4());
+  }
   @Override
   public void initialize() {
+    registerProvider(new PatientProvider());
+
+    //Interceptoren
+    registerInterceptor(new ResponseHighlighterInterceptor());
   }
 }
