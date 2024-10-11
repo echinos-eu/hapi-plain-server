@@ -45,7 +45,7 @@ public class PatientProvider implements IResourceProvider {
     return outcome;
   }
 
-  @Search
+  @Search(allowUnknownParams = true)
   public List<Patient> search(
       @OptionalParam(name = Patient.SP_FAMILY) StringParam family
   ) {
