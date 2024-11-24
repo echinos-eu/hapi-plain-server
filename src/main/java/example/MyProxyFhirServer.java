@@ -1,5 +1,6 @@
 package example;
 
+import org.springframework.http.HttpHeaders;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.interceptor.api.Hook;
 import ca.uhn.fhir.interceptor.api.Interceptor;
@@ -10,16 +11,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import util.RequestBodyUtil;
+import java.util.Enumeration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 @WebServlet(urlPatterns = {"/*"}, displayName = "FHIR Proxy Server")
 public class MyProxyFhirServer extends RestfulServer {
 
   private static final String TARGET_SERVER_BASE = "https://fhir.echinos.eu/fhir";
-  private final HttpClient httpClient = HttpClient.newHttpClient();
+  private final RestTemplate restTemplate = new RestTemplate();
 
   public MyProxyFhirServer() {
     super(FhirContext.forR4());
@@ -39,66 +40,108 @@ public class MyProxyFhirServer extends RestfulServer {
       // Derive target URL based on incoming request path
       String targetUrl = TARGET_SERVER_BASE + request.getRequestURI();
 
+      try {
+        handleRequest(targetUrl, request, response);
+      } catch (IOException e) {
+        e.printStackTrace();
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         try {
-          handleRequest(targetUrl, request, response);
-        } catch (IOException e) {
-                e.printStackTrace();
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                try {
-                    response.getWriter().write("Error occurred while processing the request.");
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
+          response.getWriter().write("Error occurred while processing the request.");
+        } catch (IOException ioException) {
+          ioException.printStackTrace();
         }
-            }
+      }
 
       return false;  // Stop further processing by HAPI
     }
 
     private void handleRequest(String targetUrl, HttpServletRequest request,
-        HttpServletResponse response)
-        throws IOException {
-      HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(targetUrl));
+        HttpServletResponse response) throws IOException {
+      HttpMethod httpMethod = getHttpMethod(request.getMethod());
 
-            // Forward all headers from the original request
-            request.getHeaderNames().asIterator().forEachRemaining(headerName -> {
-                String headerValue = request.getHeader(headerName);
-                if (headerValue != null) {
-                    requestBuilder.header(headerName, headerValue);
-                }
-            });
+      // Build headers using Spring's HttpHeaders
+      HttpHeaders headers = buildHeaders(request);
 
-      HttpRequest proxyRequest = switch (request.getMethod()) {
-        case "GET" -> requestBuilder.GET().build();
-        case "POST" -> {
-          byte[] requestBody = RequestBodyUtil.getRequestBodyAsByteArray(request);
-          yield requestBuilder.POST(HttpRequest.BodyPublishers.ofByteArray(requestBody)).build();
-        }
-                case "PUT" -> {
-                    byte[] requestBody = RequestBodyUtil.getRequestBodyAsByteArray(request);
-                    yield requestBuilder.PUT(HttpRequest.BodyPublishers.ofByteArray(requestBody)).build();
-                }
-                case "DELETE" -> requestBuilder.DELETE().build();
-        default -> throw new UnsupportedOperationException(
-            "Unsupported HTTP method: " + request.getMethod());
-      };
+      // Get request body for POST/PUT methods
+      byte[] requestBody = null;
+      if (httpMethod == HttpMethod.POST || httpMethod == HttpMethod.PUT) {
+        requestBody = request.getInputStream().readAllBytes();
+        headers.remove(HttpHeaders.TRANSFER_ENCODING); // Ensure chunked encoding is not forwarded
+      }
 
-            HttpResponse<String> proxyResponse;
-      try {
-                proxyResponse = httpClient.send(proxyRequest, HttpResponse.BodyHandlers.ofString());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IOException("Request to target server was interrupted", e);
-            }
+      // Build the request entity
+      org.springframework.http.HttpEntity<byte[]> entity = new org.springframework.http.HttpEntity<>(
+          requestBody, headers);
 
-            // Return response from proxied server
-        response.setStatus(proxyResponse.statusCode()); // Set status code
-        proxyResponse.headers().map().forEach((key, values) -> {
+      // Execute the request using RestTemplate
+      ResponseEntity<byte[]> proxyResponse = restTemplate.exchange(URI.create(targetUrl),
+          httpMethod, entity, byte[].class);
+
+      // Set response status
+      response.setStatus(proxyResponse.getStatusCodeValue());
+
+      // Forward headers, excluding Transfer-Encoding
+      proxyResponse.getHeaders().forEach((key, values) -> {
+        if (!HttpHeaders.TRANSFER_ENCODING.equalsIgnoreCase(key)) { // Exclude Transfer-Encoding
           for (String value : values) {
-            response.addHeader(key, value); // Add headers from proxied response
+            response.addHeader(key, value);
           }
-        });
-        response.getWriter().write(proxyResponse.body()); // Write body
+        }
+      });
+      System.out.println("Response Headers: " + proxyResponse.getHeaders());
+      System.out.println("Response Body: " + proxyResponse.getBody());
+
+      // Write the response body
+      byte[] responseBody = proxyResponse.getBody();
+      response.getOutputStream().write(responseBody);
+      response.getOutputStream().flush();
+    }
+
+    private HttpHeaders buildHeaders(HttpServletRequest request) {
+      HttpHeaders headers = new HttpHeaders();
+
+      Enumeration<String> headerNames = request.getHeaderNames();
+      if (headerNames != null) {
+        while (headerNames.hasMoreElements()) {
+          String headerName = headerNames.nextElement();
+          if (!isRestrictedHeader(headerName)) {
+            Enumeration<String> headerValues = request.getHeaders(headerName);
+            while (headerValues.hasMoreElements()) {
+              headers.add(headerName, headerValues.nextElement());
+            }
+          }
+        }
+      }
+      return headers;
+    }
+
+    private boolean isRestrictedHeader(String headerName) {
+      return HttpHeaders.HOST.equalsIgnoreCase(headerName)
+          || HttpHeaders.CONTENT_LENGTH.equalsIgnoreCase(headerName)
+          || HttpHeaders.CONNECTION.equalsIgnoreCase(headerName);
+    }
+
+    private HttpMethod getHttpMethod(String method) {
+      switch (method.toUpperCase()) {
+        case "GET":
+          return HttpMethod.GET;
+        case "POST":
+          return HttpMethod.POST;
+        case "PUT":
+          return HttpMethod.PUT;
+        case "DELETE":
+          return HttpMethod.DELETE;
+        case "PATCH":
+          return HttpMethod.PATCH;
+        case "HEAD":
+          return HttpMethod.HEAD;
+        case "OPTIONS":
+          return HttpMethod.OPTIONS;
+        case "TRACE":
+          return HttpMethod.TRACE;
+        default:
+          throw new UnsupportedOperationException("Unsupported HTTP method: " + method);
+      }
     }
   }
 }

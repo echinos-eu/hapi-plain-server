@@ -13,7 +13,6 @@
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <hapi.version>7.4.3</hapi.version>
-    <spring.version>3.3.4</spring.version>
   </properties>
 
   <parent>
