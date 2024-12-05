@@ -18,7 +18,9 @@ import java.util.UUID;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Patient;
+import org.springframework.stereotype.Component;
 
+@Component
 public class PatientProvider implements IResourceProvider {
 
   private HashMap<String, Patient> patients = new HashMap<>();
