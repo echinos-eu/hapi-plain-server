@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -28,37 +30,32 @@ public class ProxyInterceptor {
 
 
   @Hook(Pointcut.SERVER_INCOMING_REQUEST_PRE_PROCESSED)
-  public boolean incomingRequestPreProcessed(HttpServletRequest request,
-      HttpServletResponse response) {
+  public boolean incomingRequestPreProcessed(final HttpServletRequest request,
+      final HttpServletResponse response) {
     // Derive target URL based on incoming request path
-    String targetUrl = TARGET_SERVER_BASE + request.getRequestURI();
+    final String targetUrl = TARGET_SERVER_BASE + request.getRequestURI();
     boolean furtherProcessing = false;
     try {
       furtherProcessing = handleRequest(targetUrl, request, response);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       e.printStackTrace();
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
       try {
         response.getWriter().write("Error occurred while processing the request.");
-      } catch (IOException ioException) {
+      } catch (final IOException ioException) {
         ioException.printStackTrace();
       }
     }
     return furtherProcessing;  // Stop further processing by HAPI
   }
 
-  private boolean handleRequest(String targetUrl, HttpServletRequest request,
-      HttpServletResponse response) throws IOException {
-    HttpMethod httpMethod = getHttpMethod(request.getMethod());
-
-    // Allow only GET requests
-//    if (httpMethod != HttpMethod.GET) {
-//      return true;
-//    }
-
-    log.info("Forwarding GET request: {}", getFullUrl(request));
+  private boolean handleRequest(final String targetUrl, final HttpServletRequest request,
+      final HttpServletResponse response) throws IOException {
+    final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    final HttpMethod httpMethod = getHttpMethod(request.getMethod());
+    log.info("Forwarding {} request: {}", getFullUrl(request), request.getMethod());
     // Build headers using Spring's HttpHeaders
-    HttpHeaders headers = buildHeaders(request);
+    final HttpHeaders headers = buildHeaders(request);
 
     // Get request body for POST/PUT methods
     byte[] requestBody = null;
@@ -68,15 +65,15 @@ public class ProxyInterceptor {
     }
 
     // Build the request entity
-    org.springframework.http.HttpEntity<byte[]> entity = new org.springframework.http.HttpEntity<>(
+    final org.springframework.http.HttpEntity<byte[]> entity = new org.springframework.http.HttpEntity<>(
         requestBody, headers);
 
     // Execute the request using RestTemplate
-    ResponseEntity<byte[]> proxyResponse = restTemplate.exchange(URI.create(targetUrl),
+    final ResponseEntity<byte[]> proxyResponse = restTemplate.exchange(URI.create(targetUrl),
         httpMethod, entity, byte[].class);
 
     // Check for gzip encoding
-    boolean isGzipEncoded = "gzip".equalsIgnoreCase(
+    final boolean isGzipEncoded = "gzip".equalsIgnoreCase(
         proxyResponse.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING));
 
     // Decompress the response body if gzip-encoded
@@ -89,7 +86,7 @@ public class ProxyInterceptor {
     }
 
     // Modify the response body
-    String proxyUrlBase =
+    final String proxyUrlBase =
         request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
     responseBody = responseBody.replace(TARGET_SERVER_BASE, proxyUrlBase);
 
@@ -112,7 +109,7 @@ public class ProxyInterceptor {
     proxyResponse.getHeaders().forEach((key, values) -> {
       if (!HttpHeaders.TRANSFER_ENCODING.equalsIgnoreCase(key) &&
           !HttpHeaders.CONTENT_ENCODING.equalsIgnoreCase(key)) { // Skip Content-Encoding
-        for (String value : values) {
+        for (final String value : values) {
           response.addHeader(key, value);
         }
       }
@@ -124,11 +121,11 @@ public class ProxyInterceptor {
     return false;
   }
 
-  private byte[] decompressGzip(byte[] compressed) throws IOException {
-    try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressed);
-        GZIPInputStream gzipStream = new GZIPInputStream(byteStream);
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
-      byte[] buffer = new byte[1024];
+  private byte[] decompressGzip(final byte[] compressed) throws IOException {
+    try (final ByteArrayInputStream byteStream = new ByteArrayInputStream(compressed);
+        final GZIPInputStream gzipStream = new GZIPInputStream(byteStream);
+        final ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
+      final byte[] buffer = new byte[1024];
       int len;
       while ((len = gzipStream.read(buffer)) > 0) {
         outStream.write(buffer, 0, len);
@@ -137,9 +134,9 @@ public class ProxyInterceptor {
     }
   }
 
-  private byte[] compressGzip(byte[] uncompressed) throws IOException {
-    try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        GZIPOutputStream gzipStream = new GZIPOutputStream(byteStream)) {
+  private byte[] compressGzip(final byte[] uncompressed) throws IOException {
+    try (final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        final GZIPOutputStream gzipStream = new GZIPOutputStream(byteStream)) {
       gzipStream.write(uncompressed);
       gzipStream.finish();
       return byteStream.toByteArray();
@@ -147,15 +144,15 @@ public class ProxyInterceptor {
   }
 
 
-  private HttpHeaders buildHeaders(HttpServletRequest request) {
-    HttpHeaders headers = new HttpHeaders();
+  private HttpHeaders buildHeaders(final HttpServletRequest request) {
+    final HttpHeaders headers = new HttpHeaders();
 
-    Enumeration<String> headerNames = request.getHeaderNames();
+    final Enumeration<String> headerNames = request.getHeaderNames();
     if (headerNames != null) {
       while (headerNames.hasMoreElements()) {
-        String headerName = headerNames.nextElement();
+        final String headerName = headerNames.nextElement();
         if (!isRestrictedHeader(headerName)) {
-          Enumeration<String> headerValues = request.getHeaders(headerName);
+          final Enumeration<String> headerValues = request.getHeaders(headerName);
           while (headerValues.hasMoreElements()) {
             headers.add(headerName, headerValues.nextElement());
           }
@@ -165,13 +162,13 @@ public class ProxyInterceptor {
     return headers;
   }
 
-  private boolean isRestrictedHeader(String headerName) {
+  private boolean isRestrictedHeader(final String headerName) {
     return HttpHeaders.HOST.equalsIgnoreCase(headerName)
         || HttpHeaders.CONTENT_LENGTH.equalsIgnoreCase(headerName)
         || HttpHeaders.CONNECTION.equalsIgnoreCase(headerName);
   }
 
-  private HttpMethod getHttpMethod(String method) {
+  private HttpMethod getHttpMethod(final String method) {
     return switch (method.toUpperCase()) {
       case "GET" -> HttpMethod.GET;
       case "POST" -> HttpMethod.POST;
@@ -185,8 +182,8 @@ public class ProxyInterceptor {
     };
   }
 
-  private String getFullUrl(HttpServletRequest request) {
-    StringBuilder fullUrl = new StringBuilder();
+  private String getFullUrl(final HttpServletRequest request) {
+    final StringBuilder fullUrl = new StringBuilder();
 
     // Add scheme (http/https)
     fullUrl.append(request.getScheme())
