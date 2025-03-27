@@ -1,4 +1,4 @@
-package example;
+package hapiproxy;
 
 import java.util.Locale;
 import org.springframework.boot.SpringApplication;

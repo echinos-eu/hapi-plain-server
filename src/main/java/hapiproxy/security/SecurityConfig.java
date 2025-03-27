@@ -1,4 +1,4 @@
-package example.security;
+package hapiproxy.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

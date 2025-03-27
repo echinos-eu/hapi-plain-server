@@ -1,14 +1,16 @@
-package example;
+package hapiproxy;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.server.RestfulServer;
-import example.provider.PatientProvider;
-import interceptor.ProxyInterceptor;
+import hapiproxy.interceptor.ProxyInterceptor;
 import jakarta.servlet.annotation.WebServlet;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @WebServlet(urlPatterns = {"/*"}, displayName = "FHIR Proxy Server")
 public class MyProxyFhirServer extends RestfulServer {
 
+  @Autowired
+  private ProxyInterceptor proxyInterceptor;
 
   public MyProxyFhirServer() {
     super(FhirContext.forR4());
@@ -16,7 +18,6 @@ public class MyProxyFhirServer extends RestfulServer {
 
   @Override
   protected void initialize() {
-    registerInterceptor(new ProxyInterceptor());
-    registerProvider(new PatientProvider());
+    registerInterceptor(proxyInterceptor);
   }
 }
