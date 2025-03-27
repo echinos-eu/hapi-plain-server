@@ -2,6 +2,8 @@ package example.provider;
 
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.Operation;
+import ca.uhn.fhir.rest.annotation.OperationParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
@@ -9,6 +11,9 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
+import ca.uhn.fhir.validation.ValidationOptions;
+import ca.uhn.fhir.validation.ValidationResult;
+import example.service.EAUValidator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +27,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class PatientProvider implements IResourceProvider {
 
+  private final EAUValidator validator;
   private HashMap<String, Patient> patients = new HashMap<>();
+
+  public PatientProvider(EAUValidator validator) {
+    this.patients = patients;
+    this.validator = validator;
+  }
 
   @Override
   public Class<? extends IBaseResource> getResourceType() {
@@ -47,7 +58,7 @@ public class PatientProvider implements IResourceProvider {
   }
 
   @Search
-  public List<Patient> searh(
+  public List<Patient> search(
       @OptionalParam(name = Patient.SP_FAMILY) StringParam familyName) {
     List<Patient> returnPats = null;
     if (Objects.isNull(familyName)) {
@@ -55,10 +66,22 @@ public class PatientProvider implements IResourceProvider {
     } else {
       returnPats = patients.values().stream()
           .filter(p -> p.getName().stream()
-              .anyMatch(n -> n.getFamily() != null && n.getFamily().startsWith(familyName.getValue())))
+              .anyMatch(
+                  n -> n.getFamily() != null && n.getFamily().startsWith(familyName.getValue())))
           .toList();
 
     }
     return returnPats;
+  }
+
+  @Operation(name = "$validate", idempotent = true)
+  public MethodOutcome validate(@OperationParam(name = "resource") Patient patient)
+  {
+    ValidationOptions options = new ValidationOptions();
+    options.addProfile("https://fhir.kbv.de/StructureDefinition/KBV_PR_FOR_Patient|1.2.0");
+    ValidationResult validationResult = validator.validateWithResult(patient, options);
+    MethodOutcome methodOutcome = new MethodOutcome();
+    methodOutcome.setOperationOutcome(validationResult.toOperationOutcome());
+    return methodOutcome;
   }
 }
